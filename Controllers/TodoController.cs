@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ToDoApi.DTOs;
 
-
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")] //informs swagger that API returns in json
