@@ -45,14 +45,10 @@ namespace ToDoApi.Controllers
 
 
         /// <summary>
-        /// Authenticates a user and generates a JWT Token.
+        /// Authenticates a user and generates both Access and Refresh tokens.
         /// </summary>
-        /// <remarks>
-        /// Upon successful authentication, an access token is returned to be used for authorized requests.
-        /// </remarks>
-        /// <param name="loginUser">The credentials (username and password) of the user.</param>
-        /// <response code="200">Returns the JWT access token if credentials are valid.</response>
-        /// <response code="401">Returns if the username or password is incorrect.</response>
+        /// <param name="loginUser">User credentials.</param>
+        /// <returns>A pair of tokens for authentication and session renewal.</returns>
         [HttpPost("login")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -62,11 +58,50 @@ namespace ToDoApi.Controllers
 
             if (dbUser == null || !_authService.VerifyPassword(loginUser.PasswordHash, dbUser.PasswordHash))
             {
-                return Unauthorized("Kullanıcı adı veya şifre hatalı!");
+                return Unauthorized("Invalid username or password!");
             }
 
-            var token = _authService.GenerateToken(dbUser, _configuration);
-            return Ok(new { Token = token });
+            var accessToken = _authService.GenerateToken(dbUser, _configuration);
+
+            var refreshToken = _authService.GenerateRefreshToken();
+
+            dbUser.RefreshToken = refreshToken;
+            dbUser.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                Token = accessToken,
+                RefreshToken = refreshToken
+            });
+        }
+
+        /// <summary>
+        /// Refreshes the expired access token using a valid refresh token.
+        /// </summary>
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh([FromBody] TokenModel tokenModel)
+        {
+            if (tokenModel is null) return BadRequest("Invalid client request");
+
+            var principal = _authService.GetPrincipalFromExpiredToken(tokenModel.AccessToken, _configuration);
+            var username = principal.Identity.Name;
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+
+            if (user == null || user.RefreshToken != tokenModel.RefreshToken || user.RefreshTokenExpiryTime <= DateTime.Now)
+            {
+                return BadRequest("Invalid refresh token request");
+            }
+
+            var newAccessToken = _authService.GenerateToken(user, _configuration);
+            var newRefreshToken = _authService.GenerateRefreshToken();
+
+            user.RefreshToken = newRefreshToken;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { AccessToken = newAccessToken, RefreshToken = newRefreshToken });
         }
     }
 }

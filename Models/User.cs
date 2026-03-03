@@ -18,6 +18,7 @@ namespace ToDoApi.Models
         public UserRole Role { get; set; } = UserRole.User;
 
         public DateTime CreatedDate { get; set; } = DateTime.Now;
-
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
     }
 }
