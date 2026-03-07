@@ -16,16 +16,18 @@ public class TokenValidationMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        var path = context.Request.Path.Value?.ToLower();
-        if (path.EndsWith("/login") || path.EndsWith("/register") || path.EndsWith("/refresh"))
+        var path = context.Request.Path.Value?.ToLower() ?? "";
+        
+        if (path.Contains("/login") || path.Contains("/register") || path.Contains("/refresh"))
         {
             await _next(context);
             return;
         }
 
-        var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+        var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+        var token = authHeader?.StartsWith("Bearer ") == true ? authHeader.Split(" ").Last() : null;
 
-        if (token != null)
+        if (!string.IsNullOrWhiteSpace(token))
         {
             try
             {
@@ -36,8 +38,9 @@ public class TokenValidationMiddleware
                 await HandleExceptionAsync(context, "Token has expired. Please refresh your token.", HttpStatusCode.Unauthorized);
                 return;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"Token Validation Error: {ex.Message}");
                 await HandleExceptionAsync(context, "Invalid token.", HttpStatusCode.Unauthorized);
                 return;
             }
@@ -49,7 +52,14 @@ public class TokenValidationMiddleware
     private void ValidateToken(string token)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!);
+        var jwtKey = _configuration["Jwt:Key"];
+
+        if (string.IsNullOrEmpty(jwtKey))
+        {
+            throw new Exception("JWT Key is missing in appsettings.json!");
+        }
+
+        var key = Encoding.UTF8.GetBytes(jwtKey);
         tokenHandler.ValidateToken(token, new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,

@@ -52,11 +52,11 @@ namespace ToDoApi.Controllers
         [HttpPost("login")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> Login([FromBody] User loginUser)
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var dbUser = await _context.Users.FirstOrDefaultAsync(u => u.Username == loginUser.Username);
+            var dbUser = await _context.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
 
-            if (dbUser == null || !_authService.VerifyPassword(loginUser.PasswordHash, dbUser.PasswordHash))
+            if (dbUser == null || !_authService.VerifyPassword(request.PasswordHash, dbUser.PasswordHash))
             {
                 return Unauthorized("Invalid username or password!");
             }
