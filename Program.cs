@@ -17,6 +17,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
+builder.Services.AddHttpClient<IAIService, AIService>();
+
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter(policyName: "fixed", opt =>
