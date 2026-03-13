@@ -1,13 +1,15 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 
-
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class AIController : ControllerBase
 {
     private readonly IAIService _aiService;
 
+    
     public AIController(IAIService aiService)
     {
         _aiService = aiService;

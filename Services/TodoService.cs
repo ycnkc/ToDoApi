@@ -1,6 +1,5 @@
-﻿using System.Text.Json;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Distributed;
+﻿using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 using ToDoApi.Models;
 using ToDoApi.Repositories;
 
@@ -56,13 +55,13 @@ public class TodoService : ITodoService
             await _cache.SetStringAsync(cacheKey, "NOT_FOUND", new DistributedCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1)
-            });        
+            });
             return null;
         }
 
         await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(todo), new DistributedCacheEntryOptions
         {
-           AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10) 
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
         });
 
         return todo;
@@ -81,7 +80,7 @@ public class TodoService : ITodoService
         };
 
         await _repository.AddAsync(item);
-        await _cache.RemoveAsync("todo_list_all");
+        await _cache.RemoveAsync("all_todos");
         return item;
     }
 
@@ -97,7 +96,7 @@ public class TodoService : ITodoService
 
         await _repository.UpdateAsync(item);
 
-        await _cache.RemoveAsync("todo_list_all"); 
+        await _cache.RemoveAsync("all_todos");
         await _cache.RemoveAsync($"todo_{item.Id}");
 
         return true;
@@ -112,7 +111,7 @@ public class TodoService : ITodoService
 
         await _repository.DeleteAsync(item);
 
-        await _cache.RemoveAsync("todo_list_all"); 
+        await _cache.RemoveAsync("all_todos");
         await _cache.RemoveAsync($"todo_{item.Id}");
 
         return true;
